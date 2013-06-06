@@ -101,7 +101,7 @@ class PixelSuite
     /**
      * get image names attached to this post
      */
-    public function getImages( $h = false )
+    public static function getImages( $h = false )
     {
 		$pid = @$h->post->id;
 		// override post_id with get if post isnt loaded yet
@@ -995,6 +995,56 @@ class PixelSuite
 		imagedestroy($image);
 		return true;
 	}
+        
+        
+                 /**
+	 *  delete cron
+	 */
+	public function pixel_suite_runcron($h)
+	{
+                            $pixel_suite_settings = $h->getSerializedSettings();
+                            $this->createSitemap($h);		
+                            $this->pingSites($h);
+                            
+                            // set up cron job for autodelete:
+                            $hook = "pixel_suite_runcron";
+                            $timestamp = time();
+                            $recurrence = "daily"; 
+                            $cron_data = array('timestamp'=>$timestamp, 'recurrence'=>$recurrence, 'hook'=>$hook);
+                            $h->pluginHook('cron_update_job', 'cron', $cron_data);
+                
+	}
+        
+        
+        
+                public function delete_old_images($h) {
+                    #http://DOMAIN.TLD/content/plugins/pixel_suite/cronjob/delete_old_images.php?pass=123456
+//                    if( $_REQUEST['pass'] != '123456' ) die();
+                    define( 'PATH', FILEBASE . 'img/' );
+                    if($handle = opendir(PATH)) {
+                        while (false !== ($file = readdir($handle))) {
+                            if ($file != "." && $file != "..") {
+                                if( is_dir(PATH.$file))
+                                {
+                                        $file .= '/'.date('Y').'/';
+                                        if( !file_exists( PATH.$file ) ) continue;
+                                        if($handle2 = opendir( PATH.$file ) ) {
+                                                while (false !== ($file2 = readdir($handle2))) {
+                                                        if( strpos( $file2, '_unneeded_' ) !== false && !is_dir( PATH.$file.$file2 ) )
+                                                        {
+                                                                unlink( PATH.$file.$file2 );
+
+                                                        }
+                                                }
+                                                closedir($handle2);
+                                        }			
+                                }
+                            }
+                        }
+                        closedir($handle);
+                    }
+                }
+    
 }
 
 
